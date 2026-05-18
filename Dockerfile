@@ -11,10 +11,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN chmod +x scripts/railway-web.sh scripts/railway-celery.sh \
+RUN chmod +x scripts/railway-start.sh scripts/railway-web.sh scripts/railway-celery.sh \
     && mkdir -p media/uploads media/previews media/renders staticfiles
 
 EXPOSE 8000
 
 # Railway sets $PORT; railway.toml startCommand overrides this when deployed there.
-CMD ["sh", "-c", "daphne -b 0.0.0.0 -p ${PORT:-8000} config.asgi:application"]
+CMD ["sh", "scripts/railway-start.sh"]

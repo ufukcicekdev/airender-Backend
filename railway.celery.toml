@@ -1,11 +1,11 @@
-# Railway — Celery worker (separate service, same repo)
-# Dashboard: Root Directory = backend, Config file = railway.celery.toml
+# Deprecated: use railway.toml on all backend services + APP_PROCESS=celery
+# Kept so old Railway links still work.
 
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "sh scripts/railway-celery.sh"
+startCommand = "sh scripts/railway-start.sh"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10

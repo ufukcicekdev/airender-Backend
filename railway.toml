@@ -1,13 +1,17 @@
-# Railway — Web service (Django + Daphne)
-# Dashboard: Root Directory = backend
+# Railway — same config for web + celery + beat services.
+# Root Directory = backend, Config file = railway.toml
+#
+# Per service, set Variable:
+#   Web (default):    APP_PROCESS=web     — enable HTTP health check /health/ in dashboard
+#   Celery worker:    APP_PROCESS=celery  — disable HTTP health check for this service
+#   Celery beat:      APP_PROCESS=beat    — disable HTTP health check
 
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "sh scripts/railway-web.sh"
-healthcheckPath = "/health/"
-healthcheckTimeout = 300
+startCommand = "sh scripts/railway-start.sh"
+# HTTP health check only on web (APP_PROCESS=web): Settings → Healthcheck → Path /health/
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10

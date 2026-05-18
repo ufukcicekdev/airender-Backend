@@ -1,11 +1,10 @@
-# Railway — Celery beat (optional separate service)
-# Dashboard: Root Directory = backend, Config file = railway.celery-beat.toml
+# Deprecated: use railway.toml + APP_PROCESS=beat
 
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "celery -A config beat -l info"
+startCommand = "sh scripts/railway-start.sh"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
