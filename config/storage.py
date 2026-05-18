@@ -1,0 +1,62 @@
+"""DigitalOcean Spaces / S3-compatible object storage (optional)."""
+
+from __future__ import annotations
+
+from typing import Any
+
+
+def s3_storage_settings(env) -> dict[str, Any] | None:
+    """
+    Return settings dict to merge into config.settings when S3 is enabled.
+    Returns None for local filesystem storage.
+    """
+    bucket = env("AWS_STORAGE_BUCKET_NAME", default="")
+    use_s3 = env.bool("USE_S3", default=bool(bucket))
+
+    if not use_s3 or not bucket:
+        return None
+
+    region = env("AWS_S3_REGION_NAME", default="fra1")
+    endpoint = env(
+        "AWS_S3_ENDPOINT_URL",
+        default=f"https://{region}.digitaloceanspaces.com",
+    )
+    location = env("AWS_LOCATION", default="vizmake").strip("/")
+    custom_domain = env("AWS_S3_CUSTOM_DOMAIN", default="").strip()
+    if not custom_domain:
+        custom_domain = f"{bucket}.{region}.digitaloceanspaces.com"
+
+    media_url = (
+        f"https://{custom_domain}/{location}/"
+        if location
+        else f"https://{custom_domain}/"
+    )
+
+    return {
+        "USE_S3": True,
+        "AWS_ACCESS_KEY_ID": env("AWS_ACCESS_KEY_ID"),
+        "AWS_SECRET_ACCESS_KEY": env("AWS_SECRET_ACCESS_KEY"),
+        "AWS_STORAGE_BUCKET_NAME": bucket,
+        "AWS_S3_REGION_NAME": region,
+        "AWS_S3_ENDPOINT_URL": endpoint,
+        "AWS_S3_SIGNATURE_VERSION": "s3v4",
+        "AWS_S3_ADDRESSING_STYLE": env("AWS_S3_ADDRESSING_STYLE", default="virtual"),
+        "AWS_S3_FILE_OVERWRITE": False,
+        "AWS_DEFAULT_ACL": env("AWS_DEFAULT_ACL", default="public-read"),
+        "AWS_QUERYSTRING_AUTH": env.bool("AWS_QUERYSTRING_AUTH", default=False),
+        "AWS_LOCATION": location,
+        "AWS_S3_OBJECT_PARAMETERS": {
+            "CacheControl": env("AWS_S3_CACHE_CONTROL", default="max-age=86400"),
+        },
+        "AWS_S3_CUSTOM_DOMAIN": custom_domain,
+        "MEDIA_URL": media_url,
+        "STORAGES": {
+            "default": {
+                "BACKEND": "storages.backends.s3.S3Storage",
+            },
+            "staticfiles": {
+                "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+            },
+        },
+        "_INSTALLED_APPS_APPEND": ["storages"],
+    }
