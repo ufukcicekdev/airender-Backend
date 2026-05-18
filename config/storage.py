@@ -16,6 +16,11 @@ def s3_storage_settings(env) -> dict[str, Any] | None:
     if not use_s3 or not bucket:
         return None
 
+    access_key = env("AWS_ACCESS_KEY_ID", default="")
+    secret_key = env("AWS_SECRET_ACCESS_KEY", default="")
+    if not access_key or not secret_key:
+        return None
+
     region = env("AWS_S3_REGION_NAME", default="fra1")
     endpoint = env(
         "AWS_S3_ENDPOINT_URL",
@@ -34,8 +39,8 @@ def s3_storage_settings(env) -> dict[str, Any] | None:
 
     return {
         "USE_S3": True,
-        "AWS_ACCESS_KEY_ID": env("AWS_ACCESS_KEY_ID"),
-        "AWS_SECRET_ACCESS_KEY": env("AWS_SECRET_ACCESS_KEY"),
+        "AWS_ACCESS_KEY_ID": access_key,
+        "AWS_SECRET_ACCESS_KEY": secret_key,
         "AWS_STORAGE_BUCKET_NAME": bucket,
         "AWS_S3_REGION_NAME": region,
         "AWS_S3_ENDPOINT_URL": endpoint,

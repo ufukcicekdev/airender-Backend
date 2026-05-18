@@ -15,10 +15,18 @@ environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 SECRET_KEY = env("SECRET_KEY", default="dev-insecure-key")
 DEBUG = env("DEBUG")
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
+
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
+for _railway_host in (
+    os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip(),
+    os.environ.get("RAILWAY_PRIVATE_DOMAIN", "").strip(),
+):
+    if _railway_host and _railway_host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_railway_host)
+for _railway_suffix in (".up.railway.app", ".railway.internal"):
+    if _railway_suffix not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_railway_suffix)
 _railway_public = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip()
-if _railway_public and _railway_public not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS = [*ALLOWED_HOSTS, _railway_public]
 
 INSTALLED_APPS = [
     "jazzmin",
@@ -46,6 +54,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "config.middleware.HealthCheckMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -224,17 +233,29 @@ EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@vizmake.local")
 
 # Redis & Channels
-REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0")
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {"hosts": [REDIS_URL]},
+REDIS_URL = env("REDIS_URL", default="").strip()
+_use_redis_channels = bool(
+    REDIS_URL
+    and not REDIS_URL.startswith("redis://localhost")
+    and not REDIS_URL.startswith("redis://127.0.0.1")
+)
+if _use_redis_channels:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {"hosts": [REDIS_URL]},
+        }
     }
-}
+else:
+    CHANNEL_LAYERS = {
+        "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"},
+    }
 
 # Celery
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/1")
-CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_BROKER_URL = env(
+    "CELERY_BROKER_URL", default=REDIS_URL or "redis://localhost:6379/1"
+)
+CELERY_RESULT_BACKEND = REDIS_URL or CELERY_BROKER_URL
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
