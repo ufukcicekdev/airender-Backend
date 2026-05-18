@@ -11,7 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN chmod +x scripts/railway-web.sh \
+RUN chmod +x scripts/railway-web.sh scripts/railway-celery.sh \
     && mkdir -p media/uploads media/previews media/renders staticfiles
 
 EXPOSE 8000
