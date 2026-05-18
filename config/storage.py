@@ -60,7 +60,7 @@ def s3_storage_settings(env) -> dict[str, Any] | None:
                 "BACKEND": "storages.backends.s3.S3Storage",
             },
             "staticfiles": {
-                "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+                "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
             },
         },
         "_INSTALLED_APPS_APPEND": ["storages"],
