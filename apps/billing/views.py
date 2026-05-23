@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -85,6 +86,11 @@ class PurchaseCreditsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        if not getattr(settings, "ALLOW_SELF_SERVICE_CREDIT_PURCHASE", False):
+            return Response(
+                {"detail": "Self-service credit purchase is disabled. Contact us to add credits."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         serializer = PurchaseCreditsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:

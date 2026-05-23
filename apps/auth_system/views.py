@@ -72,6 +72,11 @@ class RegisterView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        if not getattr(settings, "ALLOW_PUBLIC_SIGNUP", False):
+            return Response(
+                {"detail": "Registration is disabled. Contact us for access."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()

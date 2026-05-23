@@ -294,6 +294,9 @@ CREDIT_ECONOMICS = {
     "RENDER_MARGIN_PERCENT": env.float("CREDIT_RENDER_MARGIN_PERCENT", default=40.0),
     "MIN_CREDITS": 1,
 }
+# Invite-only access: disable public signup and self-service credit purchases by default.
+ALLOW_PUBLIC_SIGNUP = env.bool("ALLOW_PUBLIC_SIGNUP", default=False)
+ALLOW_SELF_SERVICE_CREDIT_PURCHASE = env.bool("ALLOW_SELF_SERVICE_CREDIT_PURCHASE", default=False)
 REPLICATE_API_BASE = env("REPLICATE_API_BASE", default="https://api.replicate.com/v1")
 REPLICATE_API_TOKEN = env("REPLICATE_API_TOKEN", default="")
 OPENAI_API_BASE = env("OPENAI_API_BASE", default="https://api.openai.com/v1")
