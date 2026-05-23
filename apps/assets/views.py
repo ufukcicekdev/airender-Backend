@@ -1,3 +1,5 @@
+import logging
+
 from django.core.files.base import ContentFile
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -5,9 +7,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.core.media_urls import public_media_url
+from apps.core.storage import use_s3_storage
+
 from .models import Asset
 from .serializers import AssetSerializer
 from .services import generate_thumbnail, get_image_dimensions
+
+logger = logging.getLogger(__name__)
 
 
 class AssetUploadView(APIView):
@@ -34,6 +41,14 @@ class AssetUploadView(APIView):
             )
 
         asset.save()
+        file_url = public_media_url(asset.file)
+        if use_s3_storage() and file_url and not file_url.startswith("https://"):
+            logger.error("Asset saved but URL is not public HTTPS: %s", file_url)
+            return Response(
+                {"error": "Storage misconfigured — file was not saved to S3/Spaces."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        logger.info("Asset uploaded → %s", file_url)
         return Response(
             AssetSerializer(asset, context={"request": request}).data,
             status=status.HTTP_201_CREATED,

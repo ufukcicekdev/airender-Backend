@@ -1,4 +1,4 @@
-"""AI models for the Image Edit capability."""
+"""AI models for the Image Edit capability (Fal.ai queue API)."""
 
 IMAGE_EDIT_MODELS = [
     {
@@ -53,7 +53,7 @@ IMAGE_EDIT_MODELS = [
         "description": "Premium photorealistic edits",
         "tag": "pro",
         "brand_icon": "flux",
-        "provider": "replicate",
+        "provider": "fal",
         "external_id": "flux-pro-edit",
         "credit_cost": 4,
         "requires_images": True,
@@ -64,7 +64,7 @@ IMAGE_EDIT_MODELS = [
         "default_positive": "Create photorealistic image",
         "config": {
             "badges": ["Quality"],
-            "endpoint_path": "black-forest-labs/flux-pro",
+            "endpoint_path": "fal-ai/flux-pro",
             "output_type": "image",
         },
         "presets": [],
@@ -76,7 +76,7 @@ IMAGE_EDIT_MODELS = [
         "description": "Strong prompt adherence for edits",
         "tag": "pro",
         "brand_icon": "gpt",
-        "provider": "openai",
+        "provider": "fal",
         "external_id": "gpt-image-1.5-edit",
         "credit_cost": 5,
         "requires_images": True,
@@ -87,7 +87,7 @@ IMAGE_EDIT_MODELS = [
         "default_positive": "Create photorealistic image",
         "config": {
             "badges": ["Style", "Precise"],
-            "endpoint_path": "images/edits",
+            "endpoint_path": "fal-ai/gpt-image-1.5/edit",
             "output_type": "image",
         },
         "presets": [],
@@ -99,7 +99,7 @@ IMAGE_EDIT_MODELS = [
         "description": "Latest OpenAI image editing",
         "tag": "new",
         "brand_icon": "gpt",
-        "provider": "openai",
+        "provider": "fal",
         "external_id": "gpt-image-2-edit",
         "credit_cost": 6,
         "requires_images": True,

@@ -38,7 +38,7 @@ def resolve_provider_api_key(provider_row: AIProvider | None, provider_slug: str
 def resolve_provider_adapter_kind(provider_row: AIProvider | None, provider_slug: str) -> str:
     if provider_row:
         return provider_row.adapter
-    if provider_slug in ("fal", "comfy"):
+    if provider_slug in ("fal", "comfy", "google"):
         return provider_slug
     if provider_slug in PROVIDER_REGISTRY:
         return "http"

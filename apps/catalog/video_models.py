@@ -1,4 +1,4 @@
-"""AI models for the Video Creator capability."""
+"""AI models for the Video Creator capability (Fal.ai queue API)."""
 
 VIDEO_MODELS = [
     {
@@ -83,10 +83,10 @@ VIDEO_MODELS = [
         "min_input_images": 1,
         "max_input_images": 1,
         "input_images_label": "Source frame",
-        "input_images_help": "One image drives the video.",
-        "default_positive": "cinematic motion, realistic lighting",
+        "input_images_help": "Upload the still image to animate.",
+        "default_positive": "cinematic motion, stable subject, professional grade",
         "config": {
-            "badges": ["1080p"],
+            "badges": ["Quality", "Style"],
             "endpoint_path": "fal-ai/runway-gen3/turbo/image-to-video",
             "output_type": "video",
         },

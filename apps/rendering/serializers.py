@@ -30,6 +30,7 @@ class GeneratedImageSerializer(serializers.ModelSerializer):
 
 class RenderTaskSerializer(serializers.ModelSerializer):
     images = GeneratedImageSerializer(many=True, read_only=True)
+    flow_data = serializers.SerializerMethodField()
 
     class Meta:
         model = RenderTask
@@ -42,13 +43,21 @@ class RenderTaskSerializer(serializers.ModelSerializer):
             "node_statuses",
             "error_message",
             "images",
+            "flow_data",
             "created_at",
             "started_at",
             "completed_at",
         )
         read_only_fields = fields
 
+    def get_flow_data(self, obj: RenderTask) -> dict:
+        if obj.workflow_id:
+            return obj.workflow.graph or {}
+        return {}
+
 
 class StartRenderSerializer(serializers.Serializer):
     workflow_id = serializers.UUIDField()
     node_id = serializers.CharField(required=False, allow_blank=True)
+    category_slug = serializers.CharField(required=False, allow_blank=True)
+    model_slug = serializers.CharField(required=False, allow_blank=True)

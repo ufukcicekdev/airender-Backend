@@ -16,6 +16,12 @@ class Project(models.Model):
     description = models.TextField(blank=True)
     thumbnail = models.ImageField(upload_to="projects/thumbnails/", blank=True, null=True)
     is_template = models.BooleanField(default=False)
+    last_activity_summary = models.CharField(
+        max_length=128,
+        blank=True,
+        default="",
+        help_text="Short label shown on the projects dashboard",
+    )
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 

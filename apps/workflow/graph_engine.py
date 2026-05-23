@@ -16,7 +16,11 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
+import logging
+
 from apps.rendering.providers import RenderJob, resolve_ai_model, run_provider
+
+logger = logging.getLogger(__name__)
 
 
 class GraphExecutionError(Exception):
@@ -195,6 +199,8 @@ class FlowGraphExecutor:
                 "steps": int(data.get("steps", 30)),
                 "priority": data.get("priority"),
                 "resolution": data.get("resolution"),
+                "video_duration": data.get("video_duration"),
+                "generate_audio": data.get("generate_audio"),
                 "upscale_scale": data.get("upscale_scale"),
                 "max_output": data.get("max_output"),
             },
@@ -205,6 +211,12 @@ class FlowGraphExecutor:
 
             from apps.rendering.providers.stub import StubAdapter
 
+            logger.warning(
+                "No AIModel for category=%r slug=%r — using STUB (not Fal). "
+                "Save modelSlug/categorySlug on the render node.",
+                category_slug,
+                model_slug,
+            )
             fallback = SimpleNamespace(
                 name=job.model_name,
                 slug=model_slug or "default",

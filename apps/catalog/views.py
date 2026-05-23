@@ -3,6 +3,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .bootstrap import ensure_catalog
 from .models import AIModel, CapabilityCategory, CategoryPromptPreset
 from .serializers import CapabilityCategorySerializer
 from .user_preset_views import UserPromptPresetViewSet
@@ -16,11 +17,14 @@ class CatalogView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
+        ensure_catalog()
         active_category_presets = CategoryPromptPreset.objects.filter(
             is_active=True
         ).order_by("sort_order", "title")
-        active_models = AIModel.objects.filter(is_active=True).order_by(
-            "sort_order", "name"
+        active_models = (
+            AIModel.objects.filter(is_active=True)
+            .select_related("category")
+            .order_by("sort_order", "name")
         )
         categories = (
             CapabilityCategory.objects.filter(is_active=True)

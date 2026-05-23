@@ -3,6 +3,7 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
@@ -45,9 +46,17 @@ def set_jwt_cookies(response: Response, access: str, refresh: str) -> Response:
 
 
 def clear_jwt_cookies(response: Response) -> Response:
+    """Expire JWT cookies using the same flags as set_jwt_cookies (delete_cookie lacks httponly)."""
     kw = _cookie_kwargs()
-    response.delete_cookie(settings.JWT_COOKIE_ACCESS, **kw)
-    response.delete_cookie(settings.JWT_COOKIE_REFRESH, **kw)
+    expired = "Thu, 01 Jan 1970 00:00:00 GMT"
+    for name in (settings.JWT_COOKIE_ACCESS, settings.JWT_COOKIE_REFRESH):
+        response.set_cookie(
+            name,
+            "",
+            max_age=0,
+            expires=expired,
+            **kw,
+        )
     return response
 
 
@@ -68,11 +77,16 @@ class RegisterView(APIView):
         user = serializer.save()
         services.send_verification_email(user)
         refresh = RefreshToken.for_user(user)
+        access = str(refresh.access_token)
         response = Response(
-            {"user": UserSerializer(user).data, "message": "Registration successful. Check your email."},
+            {
+                "user": UserSerializer(user).data,
+                "access": access,
+                "message": "Registration successful. Check your email.",
+            },
             status=status.HTTP_201_CREATED,
         )
-        return set_jwt_cookies(response, str(refresh.access_token), str(refresh))
+        return set_jwt_cookies(response, access, str(refresh))
 
 
 class LoginView(APIView):
@@ -83,8 +97,9 @@ class LoginView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
         refresh = RefreshToken.for_user(user)
-        response = Response({"user": UserSerializer(user).data})
-        return set_jwt_cookies(response, str(refresh.access_token), str(refresh))
+        access = str(refresh.access_token)
+        response = Response({"user": UserSerializer(user).data, "access": access})
+        return set_jwt_cookies(response, access, str(refresh))
 
 
 class LogoutView(APIView):
@@ -104,12 +119,32 @@ class CookieTokenRefreshView(TokenRefreshView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
-        refresh = request.COOKIES.get(settings.JWT_COOKIE_REFRESH) or request.data.get("refresh")
+        refresh = request.COOKIES.get(settings.JWT_COOKIE_REFRESH) or request.data.get(
+            "refresh"
+        )
+        if not refresh:
+            resp = Response(
+                {"detail": "Refresh token missing."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+            return clear_jwt_cookies(resp)
+
         serializer = self.get_serializer(data={"refresh": refresh})
-        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except TokenError:
+            resp = Response(
+                {"detail": "Session expired. Please sign in again."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+            return clear_jwt_cookies(resp)
+
         data = serializer.validated_data
-        resp = Response({"message": "Token refreshed."})
-        return set_jwt_cookies(resp, str(data["access"]), refresh)
+        access = str(data["access"])
+        # ROTATE_REFRESH_TOKENS blacklists the cookie token; must persist the new refresh.
+        new_refresh = str(data.get("refresh") or refresh)
+        resp = Response({"message": "Token refreshed.", "access": access})
+        return set_jwt_cookies(resp, access, new_refresh)
 
 
 class MeView(APIView):

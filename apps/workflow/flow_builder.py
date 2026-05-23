@@ -73,6 +73,8 @@ def build_execution_flow_from_canvas(
     steps = int(data.get("steps") or 30)
     priority = data.get("priority")
     resolution = data.get("resolution")
+    video_duration = data.get("video_duration") or data.get("videoDuration")
+    generate_audio = data.get("generate_audio")
     upscale_scale = data.get("upscaleScale") or data.get("upscale_scale")
     max_output = data.get("upscaleMaxOutput") or data.get("max_output")
 
@@ -101,6 +103,8 @@ def build_execution_flow_from_canvas(
                 "negative": str(negative),
                 "priority": priority,
                 "resolution": resolution,
+                "video_duration": video_duration,
+                "generate_audio": generate_audio,
                 "upscale_scale": upscale_scale,
                 "max_output": max_output,
                 "source_image_urls": source_image_urls,

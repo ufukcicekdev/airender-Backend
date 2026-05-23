@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from apps.rendering.pricing import estimate_render_credits
 from apps.rendering.providers import resolve_ai_model
 
 
@@ -27,13 +28,13 @@ def credit_cost_for_render(graph: dict[str, Any], render_node_id: str | None) ->
     if not node:
         return 1
     data = node.get("data") or {}
-    model = resolve_ai_model(
-        str(data.get("categorySlug") or ""),
-        str(data.get("modelSlug") or ""),
+    category_slug = str(data.get("categorySlug") or "")
+    model = resolve_ai_model(category_slug, str(data.get("modelSlug") or ""))
+    return estimate_render_credits(
+        model,
+        category_slug=category_slug or "image-edit",
+        node_data=data,
     )
-    if model:
-        return max(1, model.credit_cost)
-    return 1
 
 
 def source_urls_for_render(
@@ -51,7 +52,7 @@ def source_urls_for_render(
         if e.get("target") != rid:
             continue
         src = node_by_id.get(e.get("source", ""))
-        if not src or src.get("type") != "source":
+        if not src or src.get("type") not in ("source", "render", "detail"):
             continue
         url = (src.get("data") or {}).get("imageUrl")
         if url and isinstance(url, str):

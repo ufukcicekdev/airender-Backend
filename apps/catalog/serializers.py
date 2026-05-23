@@ -34,6 +34,9 @@ class CategoryPromptPresetSerializer(PromptPresetSerializer):
 
 
 class AIModelSerializer(serializers.ModelSerializer):
+    credit_cost = serializers.SerializerMethodField()
+    credit_cost_from = serializers.SerializerMethodField()
+
     class Meta:
         model = AIModel
         fields = (
@@ -46,6 +49,7 @@ class AIModelSerializer(serializers.ModelSerializer):
             "provider",
             "external_id",
             "credit_cost",
+            "credit_cost_from",
             "requires_images",
             "min_input_images",
             "max_input_images",
@@ -55,6 +59,23 @@ class AIModelSerializer(serializers.ModelSerializer):
             "default_positive",
             "default_negative",
         )
+
+    def _category_slug(self, obj: AIModel) -> str:
+        cat = getattr(obj, "category", None)
+        return cat.slug if cat else ""
+
+    def get_credit_cost(self, obj: AIModel) -> int:
+        from apps.rendering.pricing import RenderPricingParams, estimate_render_credits
+
+        slug = self._category_slug(obj)
+        return estimate_render_credits(
+            obj,
+            category_slug=slug,
+            render_params=RenderPricingParams.defaults_for_category(slug),
+        )
+
+    def get_credit_cost_from(self, obj: AIModel) -> int:
+        return self.get_credit_cost(obj)
 
 
 class UserPromptPresetSerializer(serializers.ModelSerializer):

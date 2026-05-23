@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.core.exceptions import ImproperlyConfigured
+
 
 def s3_storage_settings(env) -> dict[str, Any] | None:
     """
@@ -12,13 +14,26 @@ def s3_storage_settings(env) -> dict[str, Any] | None:
     """
     bucket = env("AWS_STORAGE_BUCKET_NAME", default="")
     use_s3 = env.bool("USE_S3", default=bool(bucket))
+    require_s3 = env.bool("REQUIRE_S3_STORAGE", default=use_s3)
 
-    if not use_s3 or not bucket:
+    if not use_s3:
+        return None
+
+    if not bucket:
+        msg = "USE_S3=1 but AWS_STORAGE_BUCKET_NAME is not set."
+        if require_s3:
+            raise ImproperlyConfigured(msg)
         return None
 
     access_key = env("AWS_ACCESS_KEY_ID", default="")
     secret_key = env("AWS_SECRET_ACCESS_KEY", default="")
     if not access_key or not secret_key:
+        msg = (
+            "USE_S3=1 but AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY are missing. "
+            "Uploads and Fal outputs will not reach Spaces."
+        )
+        if require_s3:
+            raise ImproperlyConfigured(msg)
         return None
 
     region = env("AWS_S3_REGION_NAME", default="fra1")

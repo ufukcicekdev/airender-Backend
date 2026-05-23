@@ -1,52 +1,53 @@
 """
 AI servisleri → backend/.env eşlemesi.
 
-Kullanıcı sadece token/URL girer; iç router (Celery + ProviderRouter) doğru adapter'ı seçer.
-Frontend hiçbir servise direkt bağlanmaz.
+Ana render akışı: Fal.ai queue API (AIModel.provider = fal, config.endpoint_path = fal-ai/...).
+Comfy / Magnific / 3D sağlayıcıları doğrudan API ile kalabilir.
 """
 
 from __future__ import annotations
 
-# provider key (AIModel.provider) → env değişkenleri
 AI_SERVICE_ENV: dict[str, dict[str, str | list[str]]] = {
-    "comfy": {
-        "label": "ComfyUI (self-hosted)",
-        "env": ["COMFYUI_URL"],
-        "used_by": ["upscale/pro-upscaler", "image-generate/flux-schnell", "image-generate/sdxl-arch"],
-    },
     "fal": {
-        "label": "Fal Queue API",
+        "label": "Fal.ai (primary — image, edit, video)",
         "env": ["FAL_API_KEY"],
         "optional_env": ["FAL_API_BASE"],
         "used_by": [
-            "image-edit/nano-banana*",
-            "image-to-video/*",
+            "image-edit/*",
             "image-generate/nano-banana*",
+            "image-generate/flux-pro",
+            "image-generate/gpt-image",
+            "image-generate/seedream",
+            "image-generate/magnific",
+            "image-to-video/*",
         ],
     },
     "replicate": {
-        "label": "Replicate",
+        "label": "Replicate (optional direct)",
         "env": ["REPLICATE_API_TOKEN"],
         "optional_env": ["REPLICATE_API_BASE"],
-        "used_by": ["image-edit/flux-pro", "image-generate/flux-pro"],
+        "used_by": [],
     },
     "openai": {
-        "label": "OpenAI Images",
+        "label": "OpenAI Images (optional direct)",
         "env": ["OPENAI_API_KEY"],
         "optional_env": ["OPENAI_API_BASE"],
-        "used_by": ["image-edit/gpt-image*", "image-generate/gpt-image"],
+        "used_by": [],
     },
     "magnific": {
-        "label": "Magnific",
+        "label": "Magnific (upscale)",
         "env": ["MAGNIFIC_API_KEY"],
         "optional_env": ["MAGNIFIC_API_BASE"],
-        "used_by": ["upscale/magnific-*", "image-generate/magnific"],
+        "used_by": ["upscale/magnific-*"],
     },
-    "bytedance": {
-        "label": "ByteDance / Seedream",
-        "env": ["BYTEDANCE_API_KEY"],
-        "optional_env": ["BYTEDANCE_API_BASE"],
-        "used_by": ["image-edit/seedream", "image-generate/seedream"],
+    "comfy": {
+        "label": "ComfyUI (optional self-hosted)",
+        "env": ["COMFYUI_URL"],
+        "used_by": [
+            "upscale/pro-upscaler",
+            "image-generate/flux-schnell",
+            "image-generate/sdxl-arch",
+        ],
     },
     "meshy": {
         "label": "Meshy 3D",
@@ -80,7 +81,6 @@ AI_SERVICE_ENV: dict[str, dict[str, str | list[str]]] = {
     },
 }
 
-# Editörde aktif kategoriler (frontend Make)
 ACTIVE_EDITOR_CATEGORIES = (
     "image-generate",
     "image-to-video",
@@ -88,12 +88,6 @@ ACTIVE_EDITOR_CATEGORIES = (
     "upscale",
 )
 
-# Bu kategoriler için minimum .env (çoğu model Fal üzerinden)
 REQUIRED_ENV_FOR_EDITOR = [
-    "COMFYUI_URL",
     "FAL_API_KEY",
-    "REPLICATE_API_TOKEN",
-    "OPENAI_API_KEY",
-    "MAGNIFIC_API_KEY",
-    "BYTEDANCE_API_KEY",
 ]

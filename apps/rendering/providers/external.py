@@ -63,13 +63,18 @@ class ExternalHttpAdapter(ProviderAdapter):
             }
             body = {k: v for k, v in body.items() if v is not None and k != "endpoint_path"}
 
+            url = endpoint.submit_url
+            headers = {"Content-Type": "application/json"}
+            if endpoint.provider == "google":
+                sep = "&" if "?" in url else "?"
+                url = f"{url}{sep}key={endpoint.api_key}"
+            else:
+                headers["Authorization"] = f"Bearer {endpoint.api_key}"
+
             req = Request(
-                endpoint.submit_url,
+                url,
                 data=json.dumps(body).encode(),
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {endpoint.api_key}",
-                },
+                headers=headers,
                 method=endpoint.submit_method,
             )
             with urlopen(req, timeout=120) as resp:

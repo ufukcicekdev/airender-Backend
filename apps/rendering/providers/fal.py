@@ -11,6 +11,7 @@ from urllib.request import Request, urlopen
 
 from .base import ProgressCallback, ProviderAdapter
 from .endpoints import resolve_model_endpoint
+from .fal_payload import build_fal_request_body
 from .stub import StubAdapter
 
 if TYPE_CHECKING:
@@ -34,19 +35,25 @@ class FalAdapter(ProviderAdapter):
     ) -> str:
         endpoint = resolve_model_endpoint(model)
         if not endpoint.api_key or not endpoint.path:
-            logger.info("Fal not configured for %s — stub", model.slug)
+            logger.warning(
+                "Fal not configured for %s (key=%s path=%s) — STUB, not Fal API",
+                model.slug,
+                bool(endpoint.api_key),
+                endpoint.path or "(empty)",
+            )
             return self._stub.run(model, job, on_progress=on_progress)
 
+        logger.info("Fal queue POST %s model=%s", endpoint.submit_url, model.slug)
         if on_progress:
             on_progress(15, "fal_queue")
 
         try:
-            body: dict = {
-                "prompt": job.prompt,
-                "negative_prompt": job.negative_prompt or "",
-            }
-            if job.source_image_urls:
-                body["image_url"] = job.source_image_urls[0]
+            body = build_fal_request_body(model, job, endpoint)
+            logger.info(
+                "Fal body keys=%s source_count=%d",
+                list(body.keys()),
+                len(body.get("image_urls") or []) or (1 if body.get("image_url") else 0),
+            )
 
             req = Request(
                 endpoint.submit_url,
@@ -78,7 +85,7 @@ class FalAdapter(ProviderAdapter):
                     status_data = json.loads(resp.read().decode())
 
                 state = str(status_data.get("status", "")).upper()
-                if state in ("COMPLETED", "OK", "SUCCESS"):
+                if state in ("COMPLETED", "OK", "SUCCESS", "SUCCEEDED"):
                     if on_progress:
                         on_progress(90, "fal_download")
                     return self._extract_output(status_data, endpoint)
@@ -92,9 +99,23 @@ class FalAdapter(ProviderAdapter):
                 time.sleep(poll)
 
             raise TimeoutError("Fal job timed out")
-        except (URLError, HTTPError, TimeoutError, ValueError, KeyError) as exc:
+        except HTTPError as exc:
+            body = ""
+            try:
+                body = exc.read().decode()[:400]
+            except OSError:
+                pass
+            logger.error(
+                "Fal HTTP %s for %s (%s): %s",
+                exc.code,
+                model.slug,
+                endpoint.path,
+                body,
+            )
+            raise ValueError(f"Fal API error ({exc.code}): {body or exc.reason}") from exc
+        except (URLError, TimeoutError, ValueError, KeyError) as exc:
             logger.exception("Fal adapter failed for %s: %s", model.slug, exc)
-            return self._stub.run(model, job, on_progress=on_progress)
+            raise
 
     def _extract_output(self, status_data: dict, endpoint) -> str:
         response_url = status_data.get("response_url")

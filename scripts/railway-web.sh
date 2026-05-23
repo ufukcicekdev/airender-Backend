@@ -7,6 +7,9 @@ echo "[railway] PORT=${PORT}"
 echo "[railway] migrate..."
 python manage.py migrate --noinput
 
+echo "[railway] seed catalog..."
+python manage.py seed_catalog
+
 echo "[railway] collectstatic..."
 python manage.py collectstatic --noinput --clear 2>/dev/null || python manage.py collectstatic --noinput
 

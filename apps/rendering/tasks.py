@@ -11,6 +11,8 @@ from django.core.files.base import ContentFile
 from django.utils import timezone
 from PIL import Image
 
+from apps.core.media_urls import public_media_url
+from apps.projects.activity import record_project_activity
 from apps.rendering.models import GeneratedImage, RenderTask, RenderTaskStatus
 from apps.rendering.render_context import get_render_node
 from apps.workflow.flow_builder import (
@@ -98,9 +100,18 @@ def _ws_payload(task: RenderTask) -> dict:
 
 
 def update_task(task: RenderTask, **kwargs):
+    new_status = kwargs.get("status")
     for key, value in kwargs.items():
         setattr(task, key, value)
     task.save()
+    if new_status == RenderTaskStatus.COMPLETED:
+        output_type = _output_type_for_task(task)
+        summary = (
+            "Video generated" if output_type == "video" else "Generation completed"
+        )
+        record_project_activity(task.workflow.project_id, summary)
+    elif new_status == RenderTaskStatus.FAILED:
+        record_project_activity(task.workflow.project_id, "Generation failed")
     broadcast_render_update(str(task.id), _ws_payload(task))
 
 
@@ -184,32 +195,20 @@ def run_render_pipeline(self, task_id: str):
                         break
 
             output_type = _output_type_for_task(task)
+            display_url = _persist_provider_output(
+                task, output_url, output_type=output_type
+            )
 
-            if target_render_id and output_url:
+            if target_render_id and display_url:
                 canvas_graph = apply_output_to_render_node(
                     canvas_graph,
                     target_render_id,
-                    output_url,
+                    display_url,
                     output_type=output_type,
                 )
                 task.workflow.graph = canvas_graph
                 task.workflow.save(update_fields=["graph", "updated_at"])
                 node_statuses[target_render_id] = "completed"
-
-            if output_url and output_url.startswith("data:image"):
-                _save_data_url_image(task, output_url, output_type=output_type)
-            elif output_url and output_type == "video" and output_url.startswith(
-                ("http://", "https://")
-            ):
-                _save_remote_video(task, output_url, output_type=output_type)
-            elif output_url and output_url.startswith(
-                ("http://", "https://")
-            ):
-                _save_remote_image(task, output_url, output_type=output_type)
-            elif output_url:
-                _save_placeholder_image(task, label="Flow output")
-            else:
-                _save_placeholder_image(task, label="No output")
 
             update_task(
                 task,
@@ -275,6 +274,40 @@ def _run_legacy_linear_pipeline(celery_task, task: RenderTask):
         completed_at=timezone.now(),
         node_statuses=node_statuses,
     )
+
+
+def _persist_provider_output(
+    task: RenderTask,
+    output_url: str | None,
+    *,
+    output_type: str = "image",
+) -> str | None:
+    """
+    Download Fal/provider output into default storage (S3/Spaces when USE_S3=1).
+    Returns a public URL for the canvas — never a temporary Fal CDN URL.
+    """
+    if not output_url:
+        _save_placeholder_image(task, label="No output")
+        return _latest_persisted_url(task)
+
+    if output_url.startswith("data:image"):
+        _save_data_url_image(task, output_url, output_type=output_type)
+    elif output_type == "video" and output_url.startswith(("http://", "https://")):
+        _save_remote_video(task, output_url, output_type=output_type)
+    elif output_url.startswith(("http://", "https://")):
+        _save_remote_image(task, output_url, output_type=output_type)
+    else:
+        _save_placeholder_image(task, label="Flow output")
+        return _latest_persisted_url(task)
+
+    return _latest_persisted_url(task)
+
+
+def _latest_persisted_url(task: RenderTask) -> str | None:
+    gen = task.images.order_by("-created_at").first()
+    if gen and gen.image:
+        return public_media_url(gen.image)
+    return None
 
 
 def _save_remote_image(

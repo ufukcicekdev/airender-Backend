@@ -11,6 +11,7 @@ from .base import ProgressCallback, ProviderAdapter
 from .comfy import ComfyAdapter
 from .external import ExternalHttpAdapter
 from .fal import FalAdapter
+from .google import GoogleAdapter
 from .job import RenderJob
 from .stub import StubAdapter
 
@@ -23,7 +24,7 @@ _ADAPTERS: dict[str, ProviderAdapter] = {
     "openai": ExternalHttpAdapter("openai"),
     "magnific": ExternalHttpAdapter("magnific"),
     "runway": ExternalHttpAdapter("runway"),
-    "google": ExternalHttpAdapter("google"),
+    "google": GoogleAdapter(),
     "kling": ExternalHttpAdapter("kling"),
     "bytedance": ExternalHttpAdapter("bytedance"),
     "meshy": ExternalHttpAdapter("meshy"),
@@ -66,12 +67,16 @@ def run_provider(
 ) -> str:
     """Route job to the adapter for model.provider."""
     adapter = get_adapter(model.provider)
+    adapter_name = type(adapter).__name__
     logger.info(
-        "Provider run provider=%s model=%s category=%s",
+        "Provider run adapter=%s provider=%s model=%s category=%s",
+        adapter_name,
         model.provider,
         model.slug,
         model.category.slug,
     )
+    if model.provider == "fal" and adapter_name != "FalAdapter":
+        logger.error("Expected FalAdapter for provider=fal, got %s", adapter_name)
     return adapter.run(model, job, on_progress=on_progress)
 
 

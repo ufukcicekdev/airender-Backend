@@ -8,19 +8,11 @@ from .models import BillingCycle, CreditPack, Plan, PricingSettings, Subscriptio
 
 
 def get_default_plan() -> Plan:
-    plan, _ = Plan.objects.get_or_create(
-        slug="free",
-        defaults={
-            "name": "Free",
-            "description": "Get started with basic rendering",
-            "price_monthly": 0,
-            "price_yearly": 0,
-            "credits_monthly": 100,
-            "features": ["100 credits / month", "Standard quality", "Community support"],
-            "sort_order": 0,
-        },
-    )
-    return plan
+    """Internal pay-as-you-go plan (0 monthly credits, not on pricing page)."""
+    from .bootstrap import ensure_billing_catalog
+
+    ensure_billing_catalog()
+    return Plan.objects.get(slug="member")
 
 
 def ensure_user_subscription(user: User) -> UserSubscription:
@@ -59,10 +51,15 @@ def subscribe_user(user: User, plan_slug: str, billing_cycle: str = BillingCycle
 
 
 def get_pricing_overview() -> dict:
+    from .bootstrap import ensure_billing_catalog
+
+    ensure_billing_catalog()
     return {
         "settings": PricingSettings.load(),
-        "plans": Plan.objects.filter(is_active=True),
-        "credit_packs": CreditPack.objects.filter(is_active=True),
+        "plans": Plan.objects.none(),
+        "credit_packs": CreditPack.objects.filter(is_active=True).order_by(
+            "sort_order", "price"
+        ),
     }
 
 

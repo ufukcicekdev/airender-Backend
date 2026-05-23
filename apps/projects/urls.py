@@ -3,9 +3,10 @@ from rest_framework.routers import DefaultRouter
 
 from .views import ProjectViewSet
 
-# No trailing slash — matches Next.js proxy and avoids POST redirect errors
+# Register under "projects" so /api/projects and /api/projects/<id> both resolve
+# (empty prefix under path("api/projects/") broke detail routes; trailing slash breaks POST via proxy)
 router = DefaultRouter(trailing_slash=False)
-router.register(r"", ProjectViewSet, basename="project")
+router.register(r"projects", ProjectViewSet, basename="project")
 
 urlpatterns = [
     path("", include(router.urls)),

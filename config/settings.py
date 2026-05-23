@@ -274,6 +274,11 @@ CELERY_TASK_DEFAULT_QUEUE = "default"
 CELERY_TASK_ROUTES = {
     "apps.rendering.tasks.*": {"queue": "rendering"},
 }
+# Local DEBUG: run renders in-process so Make works without a Celery worker.
+CELERY_TASK_ALWAYS_EAGER = env.bool(
+    "CELERY_TASK_ALWAYS_EAGER", default=DEBUG
+)
+CELERY_TASK_EAGER_PROPAGATES = CELERY_TASK_ALWAYS_EAGER
 
 # Public URL for WebSocket media links (must match what the browser can load)
 BACKEND_PUBLIC_URL = env("BACKEND_PUBLIC_URL", default="http://localhost:8000")
@@ -282,6 +287,13 @@ BACKEND_PUBLIC_URL = env("BACKEND_PUBLIC_URL", default="http://localhost:8000")
 COMFYUI_URL = env("COMFYUI_URL", default="")
 FAL_API_BASE = env("FAL_API_BASE", default="https://queue.fal.run")
 FAL_API_KEY = env("FAL_API_KEY", default="")
+
+# Site credits: Fal USD × (1 + margin) / USD_PER_CREDIT — see apps/rendering/fal_pricing.py
+CREDIT_ECONOMICS = {
+    "USD_PER_CREDIT": env.float("CREDIT_USD_PER_CREDIT", default=0.015),
+    "RENDER_MARGIN_PERCENT": env.float("CREDIT_RENDER_MARGIN_PERCENT", default=40.0),
+    "MIN_CREDITS": 1,
+}
 REPLICATE_API_BASE = env("REPLICATE_API_BASE", default="https://api.replicate.com/v1")
 REPLICATE_API_TOKEN = env("REPLICATE_API_TOKEN", default="")
 OPENAI_API_BASE = env("OPENAI_API_BASE", default="https://api.openai.com/v1")
@@ -311,7 +323,7 @@ LUMA_API_BASE = env("LUMA_API_BASE", default="https://api.lumalabs.ai/dream-mach
 LUMA_API_KEY = env("LUMA_API_KEY", default="")
 CSM_API_BASE = env("CSM_API_BASE", default="https://api.csm.ai/v1")
 CSM_API_KEY = env("CSM_API_KEY", default="")
-ENABLE_FAL_FALLBACK = env.bool("ENABLE_FAL_FALLBACK", default=False)
+ENABLE_FAL_FALLBACK = env.bool("ENABLE_FAL_FALLBACK", default=True)
 
 # File uploads
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024

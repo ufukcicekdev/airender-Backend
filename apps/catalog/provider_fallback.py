@@ -13,6 +13,30 @@ PROVIDER_REGISTRY: dict[str, dict[str, Any]] = {
         "api_key_setting": "FAL_API_KEY",
         "path_from": "config_or_external",
     },
+    "google": {
+        "base_url_setting": "GOOGLE_AI_API_BASE",
+        "default_base_url": "https://generativelanguage.googleapis.com/v1beta",
+        "api_key_setting": "GOOGLE_AI_API_KEY",
+        "path_from": "config_or_external",
+    },
+    "kling": {
+        "base_url_setting": "KLING_API_BASE",
+        "default_base_url": "https://api.klingai.com/v1",
+        "api_key_setting": "KLING_API_KEY",
+        "default_path": "",
+    },
+    "runway": {
+        "base_url_setting": "RUNWAY_API_BASE",
+        "default_base_url": "https://api.runwayml.com/v1",
+        "api_key_setting": "RUNWAY_API_KEY",
+        "default_path": "",
+    },
+    "bytedance": {
+        "base_url_setting": "BYTEDANCE_API_BASE",
+        "default_base_url": "https://api.byteplus.com/v1",
+        "api_key_setting": "BYTEDANCE_API_KEY",
+        "default_path": "",
+    },
     "replicate": {
         "base_url_setting": "REPLICATE_API_BASE",
         "default_base_url": "https://api.replicate.com/v1",

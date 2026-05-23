@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.projects.activity import record_project_activity
 from apps.projects.models import Project
 
 from .models import Workflow
@@ -33,6 +34,7 @@ class WorkflowDetailView(APIView):
             workflow.name = serializer.validated_data["name"]
         workflow.version += 1
         workflow.save(update_fields=["graph", "name", "version", "updated_at"])
+        record_project_activity(workflow.project_id, "Canvas saved")
         return Response(WorkflowSerializer(workflow).data)
 
     def patch(self, request, workflow_id):
@@ -96,4 +98,5 @@ class WorkflowImportView(APIView):
         workflow.graph = serializer.validated_data["graph"]
         workflow.version += 1
         workflow.save(update_fields=["graph", "version", "updated_at"])
+        record_project_activity(workflow.project_id, "Canvas imported")
         return Response(WorkflowSerializer(workflow).data)

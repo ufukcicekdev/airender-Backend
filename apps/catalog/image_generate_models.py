@@ -1,4 +1,4 @@
-"""AI models for Image Generate (text / reference → image)."""
+"""AI models for Image Generate (text / reference → image) via Fal.ai."""
 
 IMAGE_GENERATE_MODELS = [
     {
@@ -65,7 +65,7 @@ IMAGE_GENERATE_MODELS = [
         "description": "Flux — premium photorealistic generation",
         "tag": "pro",
         "brand_icon": "flux",
-        "provider": "replicate",
+        "provider": "fal",
         "external_id": "black-forest-labs/flux-pro",
         "credit_cost": 4,
         "requires_images": False,
@@ -75,7 +75,7 @@ IMAGE_GENERATE_MODELS = [
         "input_images_help": "Optional sketches or photos to guide the render.",
         "default_positive": "photorealistic architectural visualization, natural lighting",
         "config": {
-            "endpoint_path": "black-forest-labs/flux-pro",
+            "endpoint_path": "fal-ai/flux-pro",
             "output_type": "image",
         },
         "presets": [
@@ -95,7 +95,7 @@ IMAGE_GENERATE_MODELS = [
         "description": "OpenAI image model — strong prompt adherence",
         "tag": "pro",
         "brand_icon": "gpt",
-        "provider": "openai",
+        "provider": "fal",
         "external_id": "gpt-image-1",
         "credit_cost": 5,
         "requires_images": False,
@@ -105,7 +105,7 @@ IMAGE_GENERATE_MODELS = [
         "input_images_help": "Optional reference for style transfer.",
         "default_positive": "detailed architectural visualization, realistic materials",
         "config": {
-            "endpoint_path": "images/generations",
+            "endpoint_path": "fal-ai/gpt-image-1.5",
             "output_type": "image",
         },
         "presets": [
@@ -153,7 +153,7 @@ IMAGE_GENERATE_MODELS = [
         "description": "Magnific — upscale and hallucinate detail",
         "tag": "pro",
         "brand_icon": "magnific",
-        "provider": "magnific",
+        "provider": "fal",
         "external_id": "magnific-v2",
         "credit_cost": 4,
         "requires_images": True,
@@ -163,7 +163,7 @@ IMAGE_GENERATE_MODELS = [
         "input_images_help": "Upload the image to enhance with Magnific.",
         "default_positive": "enhance micro detail, sharp edges, photoreal texture",
         "config": {
-            "endpoint_path": "v1/enhance",
+            "endpoint_path": "fal-ai/clarity-upscaler",
             "output_type": "image",
         },
         "presets": [

@@ -9,7 +9,13 @@ from apps.catalog.image_generate_models import (
 )
 from apps.catalog.upscale_models import UPSCALE_ACTIVE_SLUGS, UPSCALE_MODELS
 from apps.catalog.video_models import VIDEO_ACTIVE_SLUGS, VIDEO_MODELS
-from apps.catalog.models import AIModel, CapabilityCategory, CategoryPromptPreset, ModelPromptPreset
+from apps.catalog.models import (
+    AIModel,
+    AIProvider,
+    CapabilityCategory,
+    CategoryPromptPreset,
+    ModelPromptPreset,
+)
 
 
 class Command(BaseCommand):
@@ -312,6 +318,12 @@ class Command(BaseCommand):
         AIModel.objects.filter(category__slug="image-generate").exclude(
             slug__in=IMAGE_GENERATE_ACTIVE_SLUGS
         ).update(is_active=False)
+
+        AIProvider.objects.filter(slug="fal").update(
+            is_active=True,
+            use_external_id_as_path=True,
+        )
+        AIProvider.objects.filter(slug="google").update(is_active=False)
 
         self.stdout.write(
             self.style.SUCCESS(
