@@ -1,7 +1,12 @@
 import io
+import logging
 import time
 from urllib.error import URLError
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
+
+logger = logging.getLogger(__name__)
+
+_VIDEO_URL_SUFFIXES = (".mp4", ".webm", ".mov", ".m4v")
 
 from asgiref.sync import async_to_sync
 from celery import shared_task
@@ -42,24 +47,53 @@ def _absolute_media_url(url: str) -> str:
     return f"{base}/{url}"
 
 
-def _output_type_for_task(task: RenderTask) -> str:
+def _looks_like_video_url(url: str | None) -> bool:
+    if not url:
+        return False
+    path = url.split("?")[0].lower()
+    return any(path.endswith(suffix) for suffix in _VIDEO_URL_SUFFIXES)
+
+
+def _output_type_for_task(task: RenderTask, output_url: str | None = None) -> str:
     graph = task.workflow.graph or {}
     rid = (task.node_statuses or {}).get("_target_render_id") or None
     node, _ = get_render_node(graph, rid)
     if not node:
-        return "image"
+        return "video" if _looks_like_video_url(output_url) else "image"
     data = node.get("data") or {}
     if data.get("categorySlug") == "image-to-video":
+        return "video"
+    if str(data.get("outputType") or "").lower() == "video":
+        return "video"
+    if data.get("videoUrl") and not data.get("imageUrl"):
+        return "video"
+    if _looks_like_video_url(output_url):
         return "video"
     return str(data.get("outputType") or "image")
 
 
+def _fetch_remote_bytes(url: str, *, timeout: int = 120) -> bytes:
+    req = Request(
+        url,
+        headers={
+            "User-Agent": "Flowframe/1.0 (+https://flowframe.app)",
+            "Accept": "*/*",
+        },
+    )
+    with urlopen(req, timeout=timeout) as resp:
+        return resp.read()
+
+
 def _extract_task_output(task: RenderTask) -> tuple[str | None, str]:
-    output_type = _output_type_for_task(task)
     gen = task.images.order_by("-created_at").first()
+    gen_url = _absolute_media_url(gen.image.url) if gen and gen.image else None
+    output_type = _output_type_for_task(task, gen_url)
     if gen and gen.image:
         meta = gen.metadata or {}
-        return _absolute_media_url(gen.image.url), str(meta.get("output_type", output_type))
+        declared = str(meta.get("output_type") or output_type)
+        if declared != "video" and _looks_like_video_url(gen_url):
+            declared = "video"
+        return gen_url, declared
 
     graph = task.workflow.graph or {}
     rid = (task.node_statuses or {}).get("_target_render_id") or None
@@ -194,7 +228,7 @@ def run_render_pipeline(self, task_id: str):
                         output_url = node.get("data", {}).get("url")
                         break
 
-            output_type = _output_type_for_task(task)
+            output_type = _output_type_for_task(task, output_url)
             display_url = _persist_provider_output(
                 task, output_url, output_type=output_type
             )
@@ -290,12 +324,20 @@ def _persist_provider_output(
         _save_placeholder_image(task, label="No output")
         return _latest_persisted_url(task)
 
+    resolved_type = output_type
+    if resolved_type != "video" and _looks_like_video_url(output_url):
+        resolved_type = "video"
+
     if output_url.startswith("data:image"):
-        _save_data_url_image(task, output_url, output_type=output_type)
-    elif output_type == "video" and output_url.startswith(("http://", "https://")):
-        _save_remote_video(task, output_url, output_type=output_type)
+        _save_data_url_image(task, output_url, output_type=resolved_type)
+    elif resolved_type == "video" and output_url.startswith(("http://", "https://")):
+        saved = _save_remote_video(task, output_url, output_type=resolved_type)
+        if not saved:
+            raise ValueError(
+                "Video could not be saved from the provider. Try Make again in a moment."
+            )
     elif output_url.startswith(("http://", "https://")):
-        _save_remote_image(task, output_url, output_type=output_type)
+        _save_remote_image(task, output_url, output_type=resolved_type)
     else:
         _save_placeholder_image(task, label="Flow output")
         return _latest_persisted_url(task)
@@ -313,22 +355,28 @@ def _latest_persisted_url(task: RenderTask) -> str | None:
 def _save_remote_image(
     task: RenderTask, url: str, *, output_type: str = "image"
 ) -> None:
+    if _looks_like_video_url(url):
+        saved = _save_remote_video(task, url, output_type="video")
+        if saved:
+            return
+        raise ValueError("Video download failed")
     try:
-        with urlopen(url, timeout=60) as resp:
-            raw = resp.read()
+        raw = _fetch_remote_bytes(url, timeout=90)
         buffer = io.BytesIO(raw)
         img = Image.open(buffer)
         _persist_image(task, img, output_type=output_type)
     except (URLError, OSError, ValueError):
+        logger.exception("Image download failed for task %s: %s", task.id, url)
         _save_placeholder_image(task, label="Download failed")
 
 
 def _save_remote_video(
     task: RenderTask, url: str, *, output_type: str = "video"
-) -> None:
+) -> bool:
     try:
-        with urlopen(url, timeout=120) as resp:
-            raw = resp.read()
+        raw = _fetch_remote_bytes(url, timeout=180)
+        if len(raw) < 256:
+            raise ValueError("Video payload too small")
         gen = GeneratedImage(
             render_task=task,
             width=0,
@@ -341,8 +389,10 @@ def _save_remote_video(
             save=True,
         )
         gen.save()
-    except (URLError, OSError, ValueError):
-        _save_placeholder_image(task, label="Video download failed")
+        return True
+    except (URLError, OSError, ValueError) as exc:
+        logger.exception("Video download failed for task %s: %s", task.id, url)
+        return False
 
 
 def _save_data_url_image(task: RenderTask, data_url: str, *, output_type: str = "image"):
