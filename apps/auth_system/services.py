@@ -14,7 +14,7 @@ def send_verification_email(user: User) -> EmailVerificationToken:
     )
     verify_url = f"{settings.FRONTEND_URL}/verify-email?token={token.token}"
     send_mail(
-        subject="Verify your Vizmake account",
+        subject="Verify your Flowframe account",
         message=f"Click to verify: {verify_url}",
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[user.email],
@@ -31,7 +31,7 @@ def send_password_reset_email(user: User) -> PasswordResetToken:
     )
     reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token.token}"
     send_mail(
-        subject="Reset your Vizmake password",
+        subject="Reset your Flowframe password",
         message=f"Click to reset: {reset_url}",
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[user.email],

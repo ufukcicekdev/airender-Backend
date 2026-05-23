@@ -1,12 +1,12 @@
-"""django-jazzmin admin theme for Vizmake."""
+"""django-jazzmin admin theme for Flowframe."""
 
 JAZZMIN_SETTINGS = {
-    "site_title": "Vizmake Admin",
-    "site_header": "Vizmake",
-    "site_brand": "Vizmake",
+    "site_title": "Flowframe Admin",
+    "site_header": "Flowframe",
+    "site_brand": "Flowframe",
     "site_logo_classes": "img-circle",
-    "welcome_sign": "Vizmake yönetim paneline hoş geldiniz",
-    "copyright": "Vizmake",
+    "welcome_sign": "Flowframe yönetim paneline hoş geldiniz",
+    "copyright": "Flowframe",
     "search_model": [
         "auth_system.User",
         "catalog.AIModel",

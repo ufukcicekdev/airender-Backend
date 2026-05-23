@@ -2,23 +2,36 @@ from django.core.management.base import BaseCommand
 
 from apps.auth_system.models import User
 
+DEMO_EMAIL = "demo@flowframe.local"
+DEMO_EMAIL_LEGACY = "demo@vizmake.local"
+DEMO_PASSWORD = "demo1234"
+DEMO_USERNAME = "demo"
+
 
 class Command(BaseCommand):
-    help = "Create or reset the demo user (demo@vizmake.local / demo1234)"
+    help = f"Create or reset the demo user ({DEMO_EMAIL} / {DEMO_PASSWORD})"
 
     def handle(self, *args, **options):
-        email = "demo@vizmake.local"
-        password = "demo1234"
-        user, created = User.objects.get_or_create(
-            email=email,
-            defaults={"username": "demo", "is_verified": True, "credits": 500},
+        user = (
+            User.objects.filter(email=DEMO_EMAIL).first()
+            or User.objects.filter(email=DEMO_EMAIL_LEGACY).first()
+            or User.objects.filter(username=DEMO_USERNAME).first()
         )
-        user.set_password(password)
+
+        created = user is None
+        if created:
+            user = User(email=DEMO_EMAIL, username=DEMO_USERNAME)
+        else:
+            user.email = DEMO_EMAIL
+            user.username = DEMO_USERNAME
+
+        user.set_password(DEMO_PASSWORD)
         user.is_active = True
         user.is_verified = True
         user.credits = 500
-        user.username = user.username or "demo"
         user.save()
 
         action = "Created" if created else "Updated"
-        self.stdout.write(self.style.SUCCESS(f"{action} demo user: {email} / {password}"))
+        self.stdout.write(
+            self.style.SUCCESS(f"{action} demo user: {DEMO_EMAIL} / {DEMO_PASSWORD}")
+        )

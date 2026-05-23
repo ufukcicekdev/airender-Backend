@@ -264,7 +264,7 @@ def _run_legacy_linear_pipeline(celery_task, task: RenderTask):
             node_statuses[nid] = "completed"
             update_task(task, node_statuses=node_statuses)
 
-    _save_placeholder_image(task, label="Vizmake Render")
+    _save_placeholder_image(task, label="Flowframe Render")
 
     update_task(
         task,
@@ -355,7 +355,7 @@ def _save_data_url_image(task: RenderTask, data_url: str, *, output_type: str = 
     _persist_image(task, img, output_type=output_type)
 
 
-def _save_placeholder_image(task: RenderTask, label: str = "Vizmake"):
+def _save_placeholder_image(task: RenderTask, label: str = "Flowframe"):
     from PIL import ImageDraw
 
     img = Image.new("RGB", (512, 512), color=(18, 18, 24))
