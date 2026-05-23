@@ -71,8 +71,8 @@ def build_fal_request_body(
     if is_edit:
         if not source_urls:
             raise ValueError(
-                "Image edit requires a source image. Upload a Source on the canvas "
-                "and connect it to the generation node."
+                "Image edit requires a source image. Connect a Source or a previous "
+                "generation node to this render node, then save and try Make again."
             )
         body["image_urls"] = source_urls
     elif is_video:

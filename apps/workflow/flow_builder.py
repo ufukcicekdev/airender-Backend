@@ -46,6 +46,14 @@ def build_execution_flow_from_canvas(
     rid = render_node["id"]
     data = render_node.get("data") or {}
 
+    from apps.rendering.render_context import source_urls_for_render
+
+    source_image_urls = source_urls_for_render(graph, rid, node_by_id)
+    if not source_image_urls:
+        for item in data.get("inputImages") or []:
+            if isinstance(item, dict) and item.get("url"):
+                source_image_urls.append(str(item["url"]))
+
     source_ids = [
         e["source"]
         for e in edges
@@ -53,11 +61,6 @@ def build_execution_flow_from_canvas(
         and e.get("source") in node_by_id
         and node_by_id[e["source"]].get("type") == "source"
     ]
-    source_image_urls: list[str] = []
-    for sid in source_ids:
-        url = (node_by_id[sid].get("data") or {}).get("imageUrl")
-        if url and isinstance(url, str):
-            source_image_urls.append(url)
 
     prompt = (
         data.get("positive")
