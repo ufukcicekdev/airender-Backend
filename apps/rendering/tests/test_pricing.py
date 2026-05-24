@@ -6,12 +6,12 @@ from types import SimpleNamespace
 
 
 class FalPricingTests(SimpleTestCase):
-    def test_nano_banana_edit_4k(self):
+    def test_nano_banana_flat(self):
         usd = fal_usd_for_endpoint(
             "fal-ai/nano-banana/edit",
             resolution="4k",
         )
-        self.assertAlmostEqual(usd, 0.16)
+        self.assertAlmostEqual(usd, 0.039)
 
     def test_veo3_8s_audio(self):
         usd = fal_usd_for_endpoint(
@@ -31,17 +31,17 @@ class FalPricingTests(SimpleTestCase):
 
 @override_settings(
     CREDIT_ECONOMICS={
-        "USD_PER_CREDIT": 0.015,
+        "USD_PER_CREDIT": 0.06,
         "RENDER_MARGIN_PERCENT": 40,
         "MIN_CREDITS": 1,
     }
 )
 class CreditConversionTests(SimpleTestCase):
-    def test_usd_to_credits_nano_1k(self):
-        # $0.08 * 1.4 = 0.112 / 0.015 ≈ 7.47 → 8
-        self.assertEqual(usd_to_credits(0.08), 8)
+    def test_usd_to_credits_nano(self):
+        # $0.039 * 1.4 = 0.0546 / 0.06 → 1 credit
+        self.assertEqual(usd_to_credits(0.039), 1)
 
-    def test_estimate_from_params(self):
+    def test_estimate_nano_banana_edit(self):
         from apps.rendering.pricing import estimate_render_credits
 
         model = SimpleNamespace(
@@ -54,4 +54,4 @@ class CreditConversionTests(SimpleTestCase):
             category_slug="image-edit",
             render_params=RenderPricingParams(resolution="1k"),
         )
-        self.assertEqual(credits, 8)
+        self.assertEqual(credits, 1)

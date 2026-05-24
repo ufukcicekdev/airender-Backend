@@ -21,8 +21,8 @@ class Command(BaseCommand):
             yearly_discount_note="",
             credits_section_title="Buy credits",
             credits_section_description=(
-                "Pay as you go — no subscription. Register for trial credits, then buy a pack "
-                "whenever you need more. 100 credits for $4.99."
+                "Pay as you go — no subscription. Contact us for credit top-ups. "
+                "100 credits ≈ 100 standard edits from $12.99."
             ),
             credits_footer_note=(
                 "New accounts receive a small trial credit balance on signup. "

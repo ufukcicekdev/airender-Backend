@@ -40,14 +40,14 @@ class FalEndpointPricing:
 FAL_ENDPOINT_PRICING: dict[str, FalEndpointPricing] = {
     # --- Image edit / generate (Nano Banana family) ---
     "fal-ai/nano-banana/edit": FalEndpointPricing(
-        mode="per_image_resolution",
-        usd_by_resolution={"1k": 0.08, "2k": 0.12, "4k": 0.16, "default": 0.08},
-        notes="Nano Banana 2 edit — fal.ai/learn/tools/nano-banana-pro-vs-nano-banana-2",
+        mode="per_image_flat",
+        usd_flat=0.039,
+        notes="Nano Banana — $0.039/image (Fal, May 2026)",
     ),
     "fal-ai/nano-banana": FalEndpointPricing(
-        mode="per_image_resolution",
-        usd_by_resolution={"1k": 0.08, "2k": 0.12, "4k": 0.16, "default": 0.08},
-        notes="Nano Banana 2 text-to-image",
+        mode="per_image_flat",
+        usd_flat=0.039,
+        notes="Nano Banana text-to-image — $0.039/image",
     ),
     "fal-ai/nano-banana-pro/edit": FalEndpointPricing(
         mode="per_image_resolution",

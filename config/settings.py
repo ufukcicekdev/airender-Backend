@@ -289,8 +289,9 @@ FAL_API_BASE = env("FAL_API_BASE", default="https://queue.fal.run")
 FAL_API_KEY = env("FAL_API_KEY", default="")
 
 # Site credits: Fal USD × (1 + margin) / USD_PER_CREDIT — see apps/rendering/fal_pricing.py
+# USD_PER_CREDIT ~0.06 → ~1 credit per Nano Banana edit at 40% margin (competitor-like).
 CREDIT_ECONOMICS = {
-    "USD_PER_CREDIT": env.float("CREDIT_USD_PER_CREDIT", default=0.015),
+    "USD_PER_CREDIT": env.float("CREDIT_USD_PER_CREDIT", default=0.06),
     "RENDER_MARGIN_PERCENT": env.float("CREDIT_RENDER_MARGIN_PERCENT", default=40.0),
     "MIN_CREDITS": 1,
 }
