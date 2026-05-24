@@ -6,7 +6,11 @@ from urllib.request import Request, urlopen
 
 logger = logging.getLogger(__name__)
 
-_VIDEO_URL_SUFFIXES = (".mp4", ".webm", ".mov", ".m4v")
+from apps.rendering.media_urls import (
+    is_model3d_mesh_url,
+    looks_like_model3d_url,
+    looks_like_video_url,
+)
 
 from asgiref.sync import async_to_sync
 from celery import shared_task
@@ -48,10 +52,11 @@ def _absolute_media_url(url: str) -> str:
 
 
 def _looks_like_video_url(url: str | None) -> bool:
-    if not url:
-        return False
-    path = url.split("?")[0].lower()
-    return any(path.endswith(suffix) for suffix in _VIDEO_URL_SUFFIXES)
+    return looks_like_video_url(url)
+
+
+def _looks_like_model3d_url(url: str | None) -> bool:
+    return looks_like_model3d_url(url)
 
 
 def _output_type_for_task(task: RenderTask, output_url: str | None = None) -> str:
@@ -63,12 +68,20 @@ def _output_type_for_task(task: RenderTask, output_url: str | None = None) -> st
     data = node.get("data") or {}
     if data.get("categorySlug") == "image-to-video":
         return "video"
+    if data.get("categorySlug") == "3d-model":
+        return "model3d"
     if str(data.get("outputType") or "").lower() == "video":
         return "video"
-    if data.get("videoUrl") and not data.get("imageUrl"):
+    if str(data.get("outputType") or "").lower() == "model3d":
+        return "model3d"
+    if data.get("videoUrl") and not data.get("imageUrl") and not data.get("modelUrl"):
         return "video"
+    if data.get("modelUrl"):
+        return "model3d"
     if _looks_like_video_url(output_url):
         return "video"
+    if _looks_like_model3d_url(output_url):
+        return "model3d"
     return str(data.get("outputType") or "image")
 
 
@@ -93,6 +106,8 @@ def _extract_task_output(task: RenderTask) -> tuple[str | None, str]:
         declared = str(meta.get("output_type") or output_type)
         if declared != "video" and _looks_like_video_url(gen_url):
             declared = "video"
+        if declared not in ("video", "model3d") and _looks_like_model3d_url(gen_url):
+            declared = "model3d"
         return gen_url, declared
 
     graph = task.workflow.graph or {}
@@ -101,6 +116,8 @@ def _extract_task_output(task: RenderTask) -> tuple[str | None, str]:
     if not node:
         return None, output_type
     data = node.get("data") or {}
+    if data.get("modelUrl"):
+        return str(data["modelUrl"]), "model3d"
     if data.get("videoUrl"):
         return str(data["videoUrl"]), "video"
     if data.get("imageUrl"):
@@ -141,7 +158,11 @@ def update_task(task: RenderTask, **kwargs):
     if new_status == RenderTaskStatus.COMPLETED:
         output_type = _output_type_for_task(task)
         summary = (
-            "Video generated" if output_type == "video" else "Generation completed"
+            "Video generated"
+            if output_type == "video"
+            else "3D model generated"
+            if output_type == "model3d"
+            else "Generation completed"
         )
         record_project_activity(task.workflow.project_id, summary)
     elif new_status == RenderTaskStatus.FAILED:
@@ -325,16 +346,31 @@ def _persist_provider_output(
         return _latest_persisted_url(task)
 
     resolved_type = output_type
-    if resolved_type != "video" and _looks_like_video_url(output_url):
+    if resolved_type not in ("video", "model3d") and _looks_like_video_url(output_url):
         resolved_type = "video"
+    if resolved_type not in ("video", "model3d") and _looks_like_model3d_url(output_url):
+        resolved_type = "model3d"
 
     if output_url.startswith("data:image"):
-        _save_data_url_image(task, output_url, output_type=resolved_type)
+        save_type = resolved_type
+        if resolved_type == "model3d":
+            save_type = "image"
+        _save_data_url_image(task, output_url, output_type=save_type)
     elif resolved_type == "video" and output_url.startswith(("http://", "https://")):
         saved = _save_remote_video(task, output_url, output_type=resolved_type)
         if not saved:
             raise ValueError(
                 "Video could not be saved from the provider. Try Make again in a moment."
+            )
+    elif (
+        resolved_type == "model3d"
+        and is_model3d_mesh_url(output_url)
+        and output_url.startswith(("http://", "https://"))
+    ):
+        saved = _save_remote_model3d(task, output_url, output_type=resolved_type)
+        if not saved:
+            raise ValueError(
+                "3D model could not be saved from the provider. Try Make again in a moment."
             )
     elif output_url.startswith(("http://", "https://")):
         _save_remote_image(task, output_url, output_type=resolved_type)
@@ -360,6 +396,11 @@ def _save_remote_image(
         if saved:
             return
         raise ValueError("Video download failed")
+    if is_model3d_mesh_url(url):
+        saved = _save_remote_model3d(task, url, output_type="model3d")
+        if saved:
+            return
+        raise ValueError("3D model download failed")
     try:
         raw = _fetch_remote_bytes(url, timeout=90)
         buffer = io.BytesIO(raw)
@@ -392,6 +433,40 @@ def _save_remote_video(
         return True
     except (URLError, OSError, ValueError) as exc:
         logger.exception("Video download failed for task %s: %s", task.id, url)
+        return False
+
+
+def _model3d_extension(url: str) -> str:
+    path = url.split("?")[0].lower()
+    for suffix in (".glb", ".gltf", ".obj", ".fbx"):
+        if path.endswith(suffix):
+            return suffix.lstrip(".")
+    return "glb"
+
+
+def _save_remote_model3d(
+    task: RenderTask, url: str, *, output_type: str = "model3d"
+) -> bool:
+    try:
+        raw = _fetch_remote_bytes(url, timeout=180)
+        if len(raw) < 128:
+            raise ValueError("3D model payload too small")
+        ext = _model3d_extension(url)
+        gen = GeneratedImage(
+            render_task=task,
+            width=0,
+            height=0,
+            metadata={"output_type": output_type, "source_url": url},
+        )
+        gen.image.save(
+            f"{task.id}.{ext}",
+            ContentFile(raw),
+            save=True,
+        )
+        gen.save()
+        return True
+    except (URLError, OSError, ValueError):
+        logger.exception("3D model download failed for task %s: %s", task.id, url)
         return False
 
 

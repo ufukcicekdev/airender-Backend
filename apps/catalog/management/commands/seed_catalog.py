@@ -9,6 +9,7 @@ from apps.catalog.image_generate_models import (
 )
 from apps.catalog.upscale_models import UPSCALE_ACTIVE_SLUGS, UPSCALE_MODELS
 from apps.catalog.video_models import VIDEO_ACTIVE_SLUGS, VIDEO_MODELS
+from apps.catalog.model_3d_models import MODEL_3D_ACTIVE_SLUGS, MODEL_3D_MODELS
 from apps.catalog.models import (
     AIModel,
     AIProvider,
@@ -53,182 +54,7 @@ class Command(BaseCommand):
                 "description": "Text or image to 3D mesh — export GLB/OBJ",
                 "icon": "box",
                 "sort_order": 3,
-                "models": [
-                    {
-                        "slug": "meshy-3d",
-                        "name": "Meshy AI",
-                        "description": "Text or image to textured 3D model",
-                        "tag": "pro",
-                        "brand_icon": "meshy",
-                        "provider": "meshy",
-                        "external_id": "meshy-3d-v2",
-                        "credit_cost": 8,
-                        "requires_images": False,
-                        "min_input_images": 0,
-                        "max_input_images": 4,
-                        "input_images_label": "Reference images",
-                        "input_images_help": "Optional photo or sketch to guide the mesh.",
-                        "default_positive": "clean topology, PBR textures, architectural prop",
-                        "presets": [
-                            {
-                                "title": "Architectural prop",
-                                "icon": "sparkles",
-                                "positive": "furniture or decor object, watertight mesh, realistic materials",
-                                "is_default": True,
-                            },
-                            {
-                                "title": "From photo",
-                                "icon": "image",
-                                "positive": "match reference silhouette, quad-friendly topology",
-                                "negative": "broken mesh, floating geometry",
-                            },
-                        ],
-                    },
-                    {
-                        "slug": "meshy-lite-3d",
-                        "name": "Meshy Lite",
-                        "description": "Fast preview mesh from text",
-                        "tag": "free",
-                        "brand_icon": "meshy",
-                        "provider": "meshy",
-                        "external_id": "meshy-lite",
-                        "credit_cost": 2,
-                        "requires_images": False,
-                        "min_input_images": 0,
-                        "max_input_images": 1,
-                        "input_images_label": "Reference image",
-                        "input_images_help": "Optional single reference.",
-                        "default_positive": "simple 3D object, low poly preview",
-                        "presets": [
-                            {
-                                "title": "Quick blockout",
-                                "icon": "sparkles",
-                                "positive": "low poly blockout, readable silhouette",
-                                "is_default": True,
-                            },
-                        ],
-                    },
-                    {
-                        "slug": "tripo3d",
-                        "name": "Tripo3D",
-                        "description": "Tripo — high quality image/text to 3D",
-                        "tag": "new",
-                        "brand_icon": "tripo",
-                        "provider": "tripo",
-                        "external_id": "tripo-v2",
-                        "credit_cost": 6,
-                        "requires_images": False,
-                        "min_input_images": 0,
-                        "max_input_images": 4,
-                        "input_images_label": "Reference images",
-                        "input_images_help": "Optional front view or concept art.",
-                        "default_positive": "detailed 3D asset, clean UVs, game-ready",
-                        "presets": [
-                            {
-                                "title": "Product viz",
-                                "icon": "sparkles",
-                                "positive": "product hero object, studio lighting baked to texture",
-                                "is_default": True,
-                            },
-                        ],
-                    },
-                    {
-                        "slug": "rodin",
-                        "name": "Rodin",
-                        "description": "Hyperhuman Rodin — detailed organic & hard-surface 3D",
-                        "tag": "pro",
-                        "brand_icon": "rodin",
-                        "provider": "hyperhuman",
-                        "external_id": "rodin-v1",
-                        "credit_cost": 10,
-                        "requires_images": False,
-                        "min_input_images": 0,
-                        "max_input_images": 2,
-                        "input_images_label": "Reference images",
-                        "input_images_help": "Optional concept or orthographic references.",
-                        "default_positive": "high detail sculpt, realistic proportions",
-                        "presets": [
-                            {
-                                "title": "Character bust",
-                                "icon": "sparkles",
-                                "positive": "character bust, fine surface detail, production mesh",
-                                "is_default": True,
-                            },
-                        ],
-                    },
-                    {
-                        "slug": "hunyuan3d",
-                        "name": "Hunyuan3D",
-                        "description": "Tencent Hunyuan3D — fast text/image to mesh",
-                        "tag": "new",
-                        "brand_icon": "hunyuan",
-                        "provider": "tencent",
-                        "external_id": "hunyuan3d-v1",
-                        "credit_cost": 5,
-                        "requires_images": False,
-                        "min_input_images": 0,
-                        "max_input_images": 3,
-                        "input_images_label": "Reference images",
-                        "input_images_help": "Optional multi-view or single photo.",
-                        "default_positive": "coherent 3D shape, consistent materials",
-                        "presets": [
-                            {
-                                "title": "Scene object",
-                                "icon": "sparkles",
-                                "positive": "environment prop, stylized realism, export-ready",
-                                "is_default": True,
-                            },
-                        ],
-                    },
-                    {
-                        "slug": "luma-genie",
-                        "name": "Luma Genie",
-                        "description": "Luma — cinematic 3D from text or image",
-                        "tag": "pro",
-                        "brand_icon": "luma",
-                        "provider": "luma",
-                        "external_id": "genie-v1",
-                        "credit_cost": 7,
-                        "requires_images": False,
-                        "min_input_images": 0,
-                        "max_input_images": 2,
-                        "input_images_label": "Reference image",
-                        "input_images_help": "Optional image for image-to-3D.",
-                        "default_positive": "cinematic 3D asset, smooth shading",
-                        "presets": [
-                            {
-                                "title": "NeRF-style object",
-                                "icon": "sparkles",
-                                "positive": "single object, view-consistent, mesh export",
-                                "is_default": True,
-                            },
-                        ],
-                    },
-                    {
-                        "slug": "csm-ai",
-                        "name": "CSM AI",
-                        "description": "Common Sense Machines — image to 3D scene mesh",
-                        "tag": "pro",
-                        "brand_icon": "csm",
-                        "provider": "csm",
-                        "external_id": "csm-image-to-3d",
-                        "credit_cost": 9,
-                        "requires_images": True,
-                        "min_input_images": 1,
-                        "max_input_images": 1,
-                        "input_images_label": "Source image",
-                        "input_images_help": "One photo drives the 3D reconstruction.",
-                        "default_positive": "scene reconstruction, depth-aware geometry",
-                        "presets": [
-                            {
-                                "title": "Interior scan",
-                                "icon": "sparkles",
-                                "positive": "room-scale mesh, furniture separated, clean normals",
-                                "is_default": True,
-                            },
-                        ],
-                    },
-                ],
+                "models": MODEL_3D_MODELS,
             },
             {
                 "slug": "upscale",
@@ -275,6 +101,10 @@ class Command(BaseCommand):
 
             for model_data in models_data:
                 presets_data = model_data.pop("presets", [])
+                if category.slug == "3d-model":
+                    cfg = dict(model_data.get("config") or {})
+                    cfg.setdefault("output_type", "model3d")
+                    model_data["config"] = cfg
                 model, _ = AIModel.objects.update_or_create(
                     category=category,
                     slug=model_data["slug"],
@@ -317,6 +147,9 @@ class Command(BaseCommand):
         ).update(is_active=False)
         AIModel.objects.filter(category__slug="image-generate").exclude(
             slug__in=IMAGE_GENERATE_ACTIVE_SLUGS
+        ).update(is_active=False)
+        AIModel.objects.filter(category__slug="3d-model").exclude(
+            slug__in=MODEL_3D_ACTIVE_SLUGS
         ).update(is_active=False)
 
         AIProvider.objects.filter(slug="fal").update(

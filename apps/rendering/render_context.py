@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from apps.rendering.media_urls import is_model3d_mesh_url, looks_like_video_url
 from apps.rendering.pricing import estimate_render_credits
 from apps.rendering.providers import resolve_ai_model
 
@@ -37,6 +38,20 @@ def credit_cost_for_render(graph: dict[str, Any], render_node_id: str | None) ->
     )
 
 
+def _image_source_url(data: dict[str, Any]) -> str | None:
+    for key in ("imageUrl", "url", "thumbnailUrl"):
+        raw = data.get(key)
+        if not raw or not isinstance(raw, str):
+            continue
+        url = raw.strip()
+        if not url:
+            continue
+        if looks_like_video_url(url) or is_model3d_mesh_url(url):
+            continue
+        return url
+    return None
+
+
 def source_urls_for_render(
     graph: dict[str, Any],
     render_node_id: str | None,
@@ -48,15 +63,29 @@ def source_urls_for_render(
     rid = node["id"]
     edges = graph.get("edges") or []
     urls: list[str] = []
+    seen: set[str] = set()
+
+    def add(url: str | None) -> None:
+        if not url or url in seen:
+            return
+        if looks_like_video_url(url) or is_model3d_mesh_url(url):
+            return
+        seen.add(url)
+        urls.append(url)
+
     for e in edges:
         if e.get("target") != rid:
             continue
         src = node_by_id.get(e.get("source", ""))
         if not src or src.get("type") not in ("source", "render", "detail"):
             continue
-        url = (src.get("data") or {}).get("imageUrl")
-        if url and isinstance(url, str):
-            urls.append(url)
+        add(_image_source_url(src.get("data") or {}))
+
+    data = node.get("data") or {}
+    for item in data.get("inputImages") or []:
+        if isinstance(item, dict) and item.get("url"):
+            add(str(item["url"]))
+
     return urls
 
 

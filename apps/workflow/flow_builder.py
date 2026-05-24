@@ -8,6 +8,8 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
+from apps.rendering.media_urls import is_model3d_mesh_url
+
 FLOW_TYPES = frozenset({"text_prompt", "ai_model", "image_output"})
 CANVAS_RENDER_TYPES = frozenset({"render", "detail"})
 
@@ -80,6 +82,11 @@ def build_execution_flow_from_canvas(
     generate_audio = data.get("generate_audio")
     upscale_scale = data.get("upscaleScale") or data.get("upscale_scale")
     max_output = data.get("upscaleMaxOutput") or data.get("max_output")
+    topology = data.get("topology")
+    target_polycount = data.get("target_polycount")
+    symmetry_mode = data.get("symmetry_mode")
+    should_remesh = data.get("should_remesh")
+    should_texture = data.get("should_texture")
 
     ref_note = f" [refs: {len(source_ids)} source(s)]" if source_ids else ""
 
@@ -110,6 +117,11 @@ def build_execution_flow_from_canvas(
                 "generate_audio": generate_audio,
                 "upscale_scale": upscale_scale,
                 "max_output": max_output,
+                "topology": topology,
+                "target_polycount": target_polycount,
+                "symmetry_mode": symmetry_mode,
+                "should_remesh": should_remesh,
+                "should_texture": should_texture,
                 "source_image_urls": source_image_urls,
             },
         },
@@ -160,6 +172,7 @@ def apply_output_to_render_node(
     graph = dict(canvas_graph)
     nodes = []
     is_video = output_type == "video"
+    is_model3d = output_type == "model3d"
     for n in graph.get("nodes") or []:
         node = dict(n)
         if node.get("id") == render_node_id and node.get("type") in CANVAS_RENDER_TYPES:
@@ -168,9 +181,19 @@ def apply_output_to_render_node(
                 if is_video:
                     data["videoUrl"] = output_url
                     data.pop("imageUrl", None)
+                    data.pop("modelUrl", None)
+                elif is_model3d:
+                    if is_model3d_mesh_url(output_url):
+                        data["modelUrl"] = output_url
+                        data.pop("imageUrl", None)
+                    else:
+                        data["imageUrl"] = output_url
+                        data.pop("modelUrl", None)
+                    data.pop("videoUrl", None)
                 else:
                     data["imageUrl"] = output_url
                     data.pop("videoUrl", None)
+                    data.pop("modelUrl", None)
                 data["url"] = output_url
                 data["outputType"] = output_type
             data["status"] = "completed"

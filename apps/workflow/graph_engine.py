@@ -185,6 +185,13 @@ class FlowGraphExecutor:
         model = resolve_ai_model(category_slug, model_slug)
 
         output_type = "video" if category_slug == "image-to-video" else "image"
+        if category_slug == "3d-model":
+            output_type = "model3d"
+        elif model is not None:
+            cfg = model.config or {}
+            cfg_type = str(cfg.get("output_type") or "").strip()
+            if cfg_type:
+                output_type = cfg_type
 
         job = RenderJob(
             prompt=prompt,
@@ -203,6 +210,11 @@ class FlowGraphExecutor:
                 "generate_audio": data.get("generate_audio"),
                 "upscale_scale": data.get("upscale_scale"),
                 "max_output": data.get("max_output"),
+                "topology": data.get("topology"),
+                "target_polycount": data.get("target_polycount"),
+                "symmetry_mode": data.get("symmetry_mode"),
+                "should_remesh": data.get("should_remesh"),
+                "should_texture": data.get("should_texture"),
             },
         )
 

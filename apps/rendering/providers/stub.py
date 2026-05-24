@@ -15,6 +15,12 @@ if TYPE_CHECKING:
 
     from .job import RenderJob
 
+# Khronos sample — no pedestal, clean dev preview.
+_STUB_MODEL3D_URL = (
+    "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/"
+    "master/2.0/Box/glTF-Binary/Box.glb"
+)
+
 
 class StubAdapter(ProviderAdapter):
     def run(
@@ -27,6 +33,10 @@ class StubAdapter(ProviderAdapter):
         if on_progress:
             on_progress(40, "stub_render")
             on_progress(85, "stub_encode")
+
+        kind = getattr(job, "output_type", "image") or "image"
+        if kind == "model3d":
+            return _STUB_MODEL3D_URL
 
         w, h = 512, 512
         ratio = str(job.setting("aspect_ratio", "1:1"))
@@ -41,7 +51,6 @@ class StubAdapter(ProviderAdapter):
         draw.text((36, 36), model.name[:32], fill=(148, 163, 184))
         draw.text((36, 56), (job.prompt or "")[:72], fill=(100, 116, 139))
         provider_label = model.provider or "local"
-        kind = getattr(job, "output_type", "image") or "image"
         draw.text((36, h - 36), f"{provider_label} · {kind} · stub", fill=(80, 90, 110))
 
         buffer = io.BytesIO()

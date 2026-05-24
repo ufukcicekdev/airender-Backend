@@ -5,13 +5,14 @@ from __future__ import annotations
 import json
 import logging
 import time
+from dataclasses import replace
 from typing import TYPE_CHECKING
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from .base import ProgressCallback, ProviderAdapter
 from .endpoints import resolve_model_endpoint
-from .fal_payload import build_fal_request_body
+from .fal_payload import build_fal_request_body, resolve_3d_endpoint_path
 from .stub import StubAdapter
 
 if TYPE_CHECKING:
@@ -34,6 +35,12 @@ class FalAdapter(ProviderAdapter):
         on_progress: ProgressCallback | None = None,
     ) -> str:
         endpoint = resolve_model_endpoint(model)
+        if (job.category_slug or "").lower() == "3d-model":
+            source_count = len(job.source_image_urls or [])
+            alt_path = resolve_3d_endpoint_path(model, source_count)
+            if alt_path:
+                endpoint = replace(endpoint, path=alt_path)
+
         if not endpoint.api_key or not endpoint.path:
             logger.warning(
                 "Fal not configured for %s (key=%s path=%s) — STUB, not Fal API",
@@ -128,6 +135,18 @@ class FalAdapter(ProviderAdapter):
                 result = json.loads(resp.read().decode())
         else:
             result = status_data
+
+        if endpoint.output_type == "model3d":
+            for key in ("model_glb", "model_mesh", "model"):
+                item = result.get(key)
+                if isinstance(item, dict) and item.get("url"):
+                    return str(item["url"])
+            model_urls = result.get("model_urls") or {}
+            if isinstance(model_urls, dict):
+                for fmt in ("glb", "GLB"):
+                    item = model_urls.get(fmt) or model_urls.get(fmt.lower())
+                    if isinstance(item, dict) and item.get("url"):
+                        return str(item["url"])
 
         if endpoint.output_type == "video":
             videos = result.get("video") or result.get("videos") or []
